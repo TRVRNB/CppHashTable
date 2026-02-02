@@ -11,12 +11,17 @@
 #include "node.h"
 using namespace std;
 
-float alphabetical_position(char* str){
+float alphabetical_position(char*str){
+  // takes a char / char array and returns a float, from 0.0 to 1.0, of its alphabetical position
   char abc[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const char* str2 = &str[0];
   for (int i = 0; i<28; i++){
-    cout << i << endl;
+    const char* str1 = &abc[i];
+    if (strcmp(str1, str2) == 0){
+      return i / 28; // return its position, alphabetically, from 0.0 to 1.0
+    }
   }
-  return 0.0;
+  return 1.0; // everything else is pushed to the back, alphabetically
 }
 
 // NODE FUNCTIONS
