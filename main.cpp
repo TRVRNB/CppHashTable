@@ -13,11 +13,12 @@ using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.0.1";
+  char version[20] = "3.0.2";
   int starting_id = 10000;
   int ending_id = 10000;
   int entrySize;
   int tableSize;
+  const int maxTableSize = 512000; // if the hash table still doesn't fit, the program must quit. ignoring the students themselves, this hash list would be 10-80 megabytes; a few more recursions and there would be no memory left
   Node* hashTable[100]; // this should create a bunch of default nodes
   Node* headptr = new Node(nullptr); // DELETE THIS LATER!
 }
@@ -65,12 +66,38 @@ float alphabetical_position(char*str){
   return 1.0; // everything else is pushed to the back, alphabetically
 }
 
-float add_to_hashTable(Student* student){
+int add_to_hashTable(Student* student, int recursion){
+  // the mammoth function
   // adds a student to HashTable
   // and, if it would need more than 3 collisions, make hashTable twice as big.
-  static Node new_node = Node(student);
+  // it will be recursive, but only the first recursion will be able to change HashTable's size
+  // CODES:
+  // 0 - success
+  // 1 - not enough room, double hashTable's size (first recursion won't call this)
+  // 2 - error: >3 loops
+  // 3 - error: maxTableSize exceeded, halt program
+  // 4 - infinite recursions
+  // 5 - other
+  Node* new_node = new Node(student);
   int index = id_position(student->id, tableSize);
-  return 0.0;
+  if (index == -1){ // this means it's a new student, instead of an old one being repositioned
+    Node* current_node = hashTable[0];
+    int current_index = 0;
+    int collision = 0;
+    while ((current_node->getNext() != nullptr) || (collision > 2)){ // basically, searches for an empty slot
+      if (collision > 2){ // if the end of a chain is reached
+	current_index += 1;
+	current_node = hashTable[current_index];
+	collision = 0;
+      } else { // if not at the end of a chain
+	current_node = current_node->getNext();
+	collision += 1;
+      }
+    }
+    current_node->setNext(new_node); // append this node
+    return 0; // good job
+  }
+  return 5;
 }
 // END OF HASH FUNCTIONS
 
@@ -193,7 +220,6 @@ void delete_student(){
   
 int main(){
   get_hashTable_size();
-  cout << tableSize << endl;
   print("Student List - 10/9/25");
   print("Welcome! Type 'HELP' for a list of commands.");
   bool running = 1;
