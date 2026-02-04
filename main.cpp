@@ -80,25 +80,40 @@ int add_to_hashTable(Student* student, int recursion){
   // 5 - other
   Node* new_node = new Node(student);
   int index = id_position(student->id, tableSize);
+  bool RESIZE = false; // whether or not to resize the table later
   if (index == -1){ // this means it's a new student, instead of an old one being repositioned
     Node* current_node = hashTable[0];
     int current_index = 0;
     int collision = 0;
-    while ((current_node->getNext() != nullptr) || (collision > 2)){ // basically, searches for an empty slot
+    while ((current_index < tableSize) && ((current_node->getNext() != nullptr) || (collision > 2))){ // basically, searches for an empty slot
       if (collision > 2){ // if the end of a chain is reached
 	current_index += 1;
-	current_node = hashTable[current_index];
+	if (current_index < tableSize){
+	  current_node = hashTable[current_index];
+	}
 	collision = 0;
       } else { // if not at the end of a chain
 	current_node = current_node->getNext();
 	collision += 1;
       }
     }
-    current_node->setNext(new_node); // append this node
-    return 0; // good job
+    if (current_index < tableSize){
+      current_node->setNext(new_node); // append this node
+      return 0; // good job
+    } else {
+      // not enough room
+      if (recursion > 1){
+	return 1;
+      }
+      bool RESIZE = true;
+    }
   }
+  // if not -1 or it needs to be resized
+
+  
   return 5;
 }
+  
 // END OF HASH FUNCTIONS
 
 
