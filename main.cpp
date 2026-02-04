@@ -11,18 +11,70 @@
 #include "node.h"
 using namespace std;
 
+namespace studentlist {
+  // public objects for this program
+  char version[20] = "3.0.1";
+  int starting_id = 10000;
+  int ending_id = 10000;
+  int entrySize;
+  int tableSize;
+  Node* hashTable[100]; // this should create a bunch of default nodes
+  Node* headptr = new Node(nullptr); // DELETE THIS LATER!
+}
+using namespace studentlist;
+
+// HASH FUNCTIONS
+void get_hashTable_size(){
+  // updates some studentlist variables
+  entrySize = sizeof(hashTable[0]);
+  tableSize = sizeof(hashTable) / entrySize;
+  return;
+}
+
+float id_position(int id, int hashTable_size){
+  // gets the position of a node, using its ID, in the array.
+  // hashTable_size should use sizeof(hashTable) / sizeof(HashTable[0])
+  // ALSO: sizeof(HashTable[0]) can be a constant value, since it's just a ptr
+  // i think pointer sizes depend on the system and compiler, so it should be constant throughout the program
+  // (unless the user is hot-swapping their RAM)
+  if (id > ending_id){
+    return -1; // this tells it to look for the next available slot in the hash table
+  }
+  int id_count = ending_id - starting_id;
+  int id_index = id - starting_id;
+  float id_position_float = id_index / hashTable_size * 3; // 3-max for collisions
+  int id_position_int = floor(id_position_float);
+  if (id_position_int == hashTable_size){ // i don't think this can ever come up, but just in case
+    id_position_int = hashTable_size - 1;
+  }
+  return id_position_int; // this should be an index to be used in the hashTable array
+}
+
 float alphabetical_position(char*str){
   // takes a char / char array and returns a float, from 0.0 to 1.0, of its alphabetical position
-  char abc[28] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  // (assuming student names start with capital letters)
+  // since the hash table needs to be indexed using IDs, this function might not be used
+  char abc[55] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   const char* str2 = &str[0];
-  for (int i = 0; i<28; i++){
+  for (int i = 0; i<55; i++){
     const char* str1 = &abc[i];
     if (strcmp(str1, str2) == 0){
-      return i / 28; // return its position, alphabetically, from 0.0 to 1.0
+      return i / 56; // return its position, alphabetically, from 0.0 to 1.0
     }
   }
   return 1.0; // everything else is pushed to the back, alphabetically
 }
+
+float add_to_hashTable(Student* student){
+  // adds a student to HashTable
+  // and, if it would need more than 3 collisions, make hashTable twice as big.
+  static Node new_node = Node(student);
+  int index = id_position(student->id, tableSize);
+  return 0.0;
+}
+// END OF HASH FUNCTIONS
+
+
 
 // NODE FUNCTIONS
 void node_add_student(Student*student, Node*ptr){
@@ -84,8 +136,12 @@ void add_student(){
   char* pEnd; // this is needed for some low-level memory stuff in strtol and strtof
   char name1[81]; strcpy(name1, input("Enter the student's first name: ")); // does this break style? the function was already bulky so i wanted to combine like terms
   char name2[81]; strcpy(name2, input("Enter the student's last name: "));
-  char* id = input("Enter the student ID: ");
-  int id1 = strtol(id, &pEnd, 10); // cast to int
+  int id1 = 1 + ending_id; // automatically increment it!
+  // the project description doesn't say that the ID has to be chosen by the user, this time
+  // so i assumed i could make the ID be automatically chosen
+  // this makes the hash sort much easier
+  // since it's table-sorted, the user could create an ID that is so far off the median that it ruins the sorting algorithm
+  ending_id = id1;
   char* gpa = input("Enter the student's GPA: ");
   float gpa1 = strtof(gpa, &pEnd); // cast to float
   float gpa2 = round(100 * gpa1) / 100; // round to 2 decimal points
@@ -136,6 +192,8 @@ void delete_student(){
 }
   
 int main(){
+  get_hashTable_size();
+  cout << tableSize << endl;
   print("Student List - 10/9/25");
   print("Welcome! Type 'HELP' for a list of commands.");
   bool running = 1;
