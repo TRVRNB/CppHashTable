@@ -13,14 +13,14 @@ using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.0.2";
+  char version[20] = "3.03";
   int starting_id = 10000;
   int ending_id = 10000;
   int entrySize;
   int tableSize;
-  const int maxTableSize = 512000; // if the hash table still doesn't fit, the program must quit. ignoring the students themselves, this hash list would be 10-80 megabytes; a few more recursions and there would be no memory left
+  const int maxTableSize = 512000; // if the hash table still doesn't fit, the program must quit. ignoring the students themselves, this hash list would be on the low end 100 megabytes (according to my very broad math); a few more recursions and there would be no memory left!
   Node* hashTable[100]; // this should create a bunch of default nodes
-  Node* headptr = new Node(nullptr); // DELETE THIS LATER!
+  Node* headptr = new Node(nullptr); // DELETE THIS LATER! this is from the OLD program!
 }
 using namespace studentlist;
 
@@ -29,6 +29,9 @@ void get_hashTable_size(){
   // updates some studentlist variables
   entrySize = sizeof(hashTable[0]);
   tableSize = sizeof(hashTable) / entrySize;
+  cout << "Table size: " << tableSize;
+  int estimated_size = 280 * tableSize;
+  cout << ", estimated size: " << estimated_size << " bytes." << endl;
   return;
 }
 
@@ -82,34 +85,52 @@ int add_to_hashTable(Student* student, int recursion){
   int index = id_position(student->id, tableSize);
   bool RESIZE = false; // whether or not to resize the table later
   if (index == -1){ // this means it's a new student, instead of an old one being repositioned
+    if (student->id > ending_id){
+      ending_id = student->id;
+    }
     Node* current_node = hashTable[0];
+    bool found_end = false;
+    bool in_bounds = true;
     int current_index = 0;
     int collision = 0;
-    while ((current_index < tableSize) && ((current_node->getNext() != nullptr) || (collision > 2))){ // basically, searches for an empty slot
+    while (!found_end && in_bounds){ // basically, searches for an empty slot
       if (collision > 2){ // if the end of a chain is reached
 	current_index += 1;
 	if (current_index < tableSize){
 	  current_node = hashTable[current_index];
+	} else {
+	  RESIZE = true;
 	}
 	collision = 0;
       } else { // if not at the end of a chain
-	current_node = current_node->getNext();
-	collision += 1;
+	if ((current_node->getNext() == nullptr) && collision < 3){ // if there is room here
+	  found_end = true;
+	} else {
+	  current_node = current_node->getNext();
+	  collision += 1;
+	}
       }
     }
-    if (current_index < tableSize){
+    // end of searching for room
+    if (!RESIZE){
       current_node->setNext(new_node); // append this node
       return 0; // good job
-    } else {
-      // not enough room
-      if (recursion > 1){
-	return 1;
-      }
-      bool RESIZE = true;
     }
-  }
-  // if not -1 or it needs to be resized
-
+  } else { // specific index
+    Node* current_node = hashTable[index];
+    int collision = 0;
+    while (collision < 2 && (current_node->getNext() != nullptr)){
+      current_node = current_node->getNext();
+      collision += 1;
+    }
+    if (collision >= 2){
+      RESIZE = true;
+    } else {
+      current_node->setNext(new_node);
+    }
+  } // emacs keeps trying to put an extra tab here for some reason!
+  // RESIZING (mammoth function: part 2!)
+  // WIP!
   
   return 5;
 }
@@ -235,7 +256,7 @@ void delete_student(){
   
 int main(){
   get_hashTable_size();
-  print("Student List - 10/9/25");
+  cout << "Hash Table Student List - Version " << version << endl;
   print("Welcome! Type 'HELP' for a list of commands.");
   bool running = 1;
   while (running){ // main loop
