@@ -13,29 +13,27 @@ using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.03";
+  char version[20] = "3.04";
   int starting_id = 10000;
   int ending_id = 10000;
   int entrySize;
-  int tableSize;
+  int tableSize = 100;
   const int maxTableSize = 512000; // if the hash table still doesn't fit, the program must quit. ignoring the students themselves, this hash list would be on the low end 100 megabytes (according to my very broad math); a few more recursions and there would be no memory left!
-  Node* hashTable[100]; // this should create a bunch of default nodes
+  Node** hashTable = new Node*[100](); // this should create a bunch of default nodes
   Node* headptr = new Node(nullptr); // DELETE THIS LATER! this is from the OLD program!
 }
 using namespace studentlist;
 
 // HASH FUNCTIONS
 void get_hashTable_size(){
-  // updates some studentlist variables
-  entrySize = sizeof(hashTable[0]);
-  tableSize = sizeof(hashTable) / entrySize;
+  // this function is mostly irrelevant now; tableSize is tracked manually
   cout << "Table size: " << tableSize;
   int estimated_size = 280 * tableSize;
   cout << ", estimated size: " << estimated_size << " bytes." << endl;
   return;
 }
 
-float id_position(int id, int hashTable_size){
+int id_position(int id, int hashTable_size){
   // gets the position of a node, using its ID, in the array.
   // hashTable_size should use sizeof(hashTable) / sizeof(HashTable[0])
   // ALSO: sizeof(HashTable[0]) can be a constant value, since it's just a ptr
@@ -44,14 +42,7 @@ float id_position(int id, int hashTable_size){
   if (id > ending_id){
     return -1; // this tells it to look for the next available slot in the hash table
   }
-  int id_count = ending_id - starting_id;
-  int id_index = id - starting_id;
-  float id_position_float = id_index / hashTable_size * 3; // 3-max for collisions
-  int id_position_int = floor(id_position_float);
-  if (id_position_int == hashTable_size){ // i don't think this can ever come up, but just in case
-    id_position_int = hashTable_size - 1;
-  }
-  return id_position_int; // this should be an index to be used in the hashTable array
+  return (id - starting_id) % tableSize;
 }
 
 float alphabetical_position(char*str){
@@ -69,7 +60,7 @@ float alphabetical_position(char*str){
   return 1.0; // everything else is pushed to the back, alphabetically
 }
 
-int add_to_hashTable(Student* student, int recursion){
+int add_student_to_hashTable(Student* student, int recursion){
   // the mammoth function
   // adds a student to HashTable
   // and, if it would need more than 3 collisions, make hashTable twice as big.
@@ -131,7 +122,29 @@ int add_to_hashTable(Student* student, int recursion){
   } // emacs keeps trying to put an extra tab here for some reason!
   // RESIZING (mammoth function: part 2!)
   // WIP!
-  
+  if (RESIZE && recursion == 1){ // only run this on first recursion
+    int unwrapped_index = 1;
+    Student* unwrapped_hashTable[3*tableSize + 1]; // unwrap this hash table into a giant array
+    for (int current_index = 0; current_index < tableSize; current_index++){
+      Node* current_node = hashTable[current_index];
+      for (int i = 0; i < 3; i++){
+	// look for up to 3 collisions to add to the unwrapped list
+	if (current_node != nullptr){
+	  unwrapped_hashTable[unwrapped_index] = current_node->getStudent();
+	  unwrapped_index++;
+	  current_node = current_node->getNext();
+	}
+      }
+    }
+    // delete old table
+    Node** oldTable = hashTable;
+    tableSize *= 2;
+    hashTable = new Node*[tableSize]();
+    delete[] oldTable;
+    get_hashTable_size();
+    // re-hash!
+    
+  }
   return 5;
 }
   
