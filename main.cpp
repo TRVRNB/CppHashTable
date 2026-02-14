@@ -13,7 +13,7 @@ using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.04";
+  char version[20] = "3.05";
   int starting_id = 10000;
   int ending_id = 10000;
   int entrySize;
@@ -42,7 +42,8 @@ int id_position(int id, int hashTable_size){
   if (id > ending_id){
     return -1; // this tells it to look for the next available slot in the hash table
   }
-  return (id - starting_id) % tableSize;
+  return (id - starting_id) % tableSize; // simple enough; it wraps around the table 3 times
+  // THIS ONLY WORKS ASSUMING THE IDS ARE UNIFORM! i have to wrestle away some control from the user in this case.
 }
 
 float alphabetical_position(char*str){
@@ -79,71 +80,84 @@ int add_student_to_hashTable(Student* student, int recursion){
     if (student->id > ending_id){
       ending_id = student->id;
     }
-    Node* current_node = hashTable[0];
-    bool found_end = false;
     bool in_bounds = true;
     int current_index = 0;
     int collision = 0;
-    while (!found_end && in_bounds){ // basically, searches for an empty slot
-      if (collision > 2){ // if the end of a chain is reached
-	current_index += 1;
-	if (current_index < tableSize){
-	  current_node = hashTable[current_index];
-	} else {
-	  RESIZE = true;
-	}
-	collision = 0;
-      } else { // if not at the end of a chain
-	if ((current_node->getNext() == nullptr) && collision < 3){ // if there is room here
-	  found_end = true;
-	} else {
-	  current_node = current_node->getNext();
-	  collision += 1;
+    while (in_bounds){ // basically, searches for an empty slot until it runs out of spaces to check
+      if (current_index >= tableSize){
+	RESIZE = true;
+	in_bounds = false;
+      } else {
+	Node* current_node = hashTable[current_index];
+	if (current_node == nullptr){ // nothing is at the start
+	  // put it here
+	  hashTable[current_index] = new_node;
+	  return 0;
+	} else if (collision < 3){ // if there is a collision
+	  Node* current_node2 = current_node;
+	  collision = 0;
+	  while (current_node2->getNext() != nullptr && collision < 2){ // keep looking until the end is reached
+	    current_node2 = current_node2->getNext();
+	    collision++;
+	  }
+	  if (collision < 2 && current_node2->getNext() == nullptr){ // space exists right here!
+	    current_node2->setNext(new_node);
+	    return 0;
+	  } else {
+	    // too many collisions!
+	    current_index++;
+	    collision = 0;
+	  }
 	}
       }
     }
-    // end of searching for room
-    if (!RESIZE){
-      current_node->setNext(new_node); // append this node
-      return 0; // good job
-    }
-  } else { // specific index
-    Node* current_node = hashTable[index];
-    int collision = 0;
-    while (collision < 2 && (current_node->getNext() != nullptr)){
-      current_node = current_node->getNext();
-      collision += 1;
-    }
-    if (collision >= 2){
+  } else {
+  // end of searching for room
+    if (index >= tableSize){
       RESIZE = true;
     } else {
-      current_node->setNext(new_node);
+      Node* current_node = hashTable[index];
+      if (current_node == nullptr){
+	hashTable[index] = new_node;
+	return 0;
+      }
+      int collision = 0;
+      while (collision < 2 && (current_node->getNext() != nullptr)){
+	current_node = current_node->getNext();
+	collision += 1;
+      }
+      if (collision >= 2){
+	RESIZE = true;
+      } else {
+	current_node->setNext(new_node);
+	return 0;
+      }
     }
   } // emacs keeps trying to put an extra tab here for some reason!
   // RESIZING (mammoth function: part 2!)
-  // WIP!
   if (RESIZE && recursion == 1){ // only run this on first recursion
-    int unwrapped_index = 1;
-    Student* unwrapped_hashTable[3*tableSize + 1]; // unwrap this hash table into a giant array
-    for (int current_index = 0; current_index < tableSize; current_index++){
-      Node* current_node = hashTable[current_index];
-      for (int i = 0; i < 3; i++){
-	// look for up to 3 collisions to add to the unwrapped list
-	if (current_node != nullptr){
-	  unwrapped_hashTable[unwrapped_index] = current_node->getStudent();
-	  unwrapped_index++;
-	  current_node = current_node->getNext();
-	}
-      }
+    if (tableSize * 2 >= maxTableSize){
+      return 3;
     }
-    // delete old table
-    Node** oldTable = hashTable;
+    Node** oldTable = hashTable; // this should be a deep copy
     tableSize *= 2;
     hashTable = new Node*[tableSize]();
-    delete[] oldTable;
-    get_hashTable_size();
     // re-hash!
-    
+    for (int i = 0; i < tableSize / 2; i++){
+      Node* node = oldTable[i];
+      while (node != nullptr){
+	Student* student = node->getStudent();
+	if (student != nullptr){
+	  add_student_to_hashTable(student, recursion+1);
+	}
+	Node* to_delete = node;
+	node = node->getNext();
+	delete to_delete;
+      }
+    }
+    delete[] oldTable;
+    // ﬁnally! add the student you originally intended to add
+    return add_student_to_hashTable(student, recursion+1);
   }
   return 5;
 }
@@ -227,6 +241,37 @@ void add_student(){
   student->id = id1; // id
   student->gpa = gpa2; // gpa
   node_add_student(student, headptr); // new function
+  int code = add_student_to_hashTable(student, 1);
+  if (code == 0){
+    print("Success.");
+  }
+  return;
+}
+
+void add_random_student(){
+  // adds a student based on random chance
+  char* pEnd; // this is needed for some low-level memory stuff in strtol and strtof
+  char name1[81]; strcpy(name1, input("Enter the student's first name: ")); // does this break style? the function was already bulky so i wanted to combine like terms
+  char name2[81]; strcpy(name2, input("Enter the student's last name: "));
+  int id1 = 1 + ending_id; // automatically increment it!
+  // the project description doesn't say that the ID has to be chosen by the user, this time
+  // so i assumed i could make the ID be automatically chosen
+  // this makes the hash sort much easier
+  // since it's table-sorted, the user could create an ID that is so far off the median that it ruins the sorting algorithm
+  ending_id = id1;
+  char* gpa = input("Enter the student's GPA: ");
+  float gpa1 = strtof(gpa, &pEnd); // cast to float
+  float gpa2 = round(100 * gpa1) / 100; // round to 2 decimal points
+  Student* student = new Student; // to keep it in memory after this scope ends; be sure to free this memory when it gets deleted
+  strcpy(student->name1, name1);
+  strcpy(student->name2, name2);
+  student->id = id1; // id
+  student->gpa = gpa2; // gpa
+  node_add_student(student, headptr); // new function
+  int code = add_student_to_hashTable(student, 1);
+  if (code == 0){
+    print("Success.");
+  }
   return;
 }
 
