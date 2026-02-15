@@ -17,7 +17,7 @@ using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.06";
+  char version[20] = "3.07";
   int starting_id = 10000;
   int ending_id = 10000;
   int entrySize;
@@ -274,6 +274,7 @@ void add_student(){
 
 int add_random_student(){
   // adds 1 student based on random chance
+  // since the ID is the seed, this has the same RNG every time. not a real problem, though
   char* pEnd; // this is needed for some low-level memory stuff in strtol and strtof
   int id1 = 1 + ending_id; // automatically increment it!
   char name1[81];
@@ -309,11 +310,16 @@ void add_random(){
     return;
   }
   // the main loop
+  bool success = true;
   for (int i = 0; i < amount; i++){
     int code = add_random_student();
     if (code != 0){
       cout << "Error: " << code << endl;
+      success = false;
     }
+  }
+  if (success){
+    print("Success.");
   }
 }
 

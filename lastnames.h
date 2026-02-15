@@ -5,7 +5,7 @@
 // this is the only way that i currently know how to store names in a json-like file
 class LastNames {
   public:
-  static const int amount = 16;
+  static const int amount = 38;
   char names[amount][21] = {
     // it's too late to try to remember names off the top of my head
     "Jabłonski",
@@ -24,6 +24,28 @@ class LastNames {
     "Egypt",
     "Myanmar",
     "Macaroni",
+    "Revolution",
+    "Collector",
+    "Young",
+    "Washington",
+    "Suggestion",
+    "Ponytail",
+    "Intention",
+    "Unicorn",
+    "Guitar",
+    "Bass",
+    "Chimichanga",
+    "Actor",
+    "Podcast",
+    "Daugherty",
+    "Driver",
+    "Under The Stars",
+    "Failure",
+    "the Second",
+    "Explanation",
+    "Philosopher",
+    "Housing",
+    "Salad",
   };
 };
 #endif

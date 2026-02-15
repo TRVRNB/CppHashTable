@@ -11,7 +11,7 @@ Node::Node(Student* init) {
 }
 
 Node::~Node() {
-  delete student;
+  // i removed the student destructor from here, INTENTIONALLY!
   next = NULL;
 }
 
