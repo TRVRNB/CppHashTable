@@ -4,16 +4,20 @@
 // The keys could also just represent their position in the array. So the 31st key would just be labelled "31".
 // I need to make a function that gets a float value based on text's alphabetical position, assuming student names always start with capital letters.
 #include <iostream>
-#include <cstring> // for strcmp()
-#include <cstdlib> // for strtol() + strtof()
+#include <cstring> // for strcmp() + strcpy()
+#include <cstdlib> // for strtol() + strtof() + rand()
 #include <cmath> // for round()
 #include "student.h"
 #include "node.h"
+// name files
+#include "firstnames.h"
+#include "lastnames.h"
+// having each be its own file seems redundant, but this is the only way to follow the assignment's rules
 using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.05";
+  char version[20] = "3.06";
   int starting_id = 10000;
   int ending_id = 10000;
   int entrySize;
@@ -21,8 +25,28 @@ namespace studentlist {
   const int maxTableSize = 512000; // if the hash table still doesn't fit, the program must quit. ignoring the students themselves, this hash list would be on the low end 100 megabytes (according to my very broad math); a few more recursions and there would be no memory left!
   Node** hashTable = new Node*[100](); // this should create a bunch of default nodes
   Node* headptr = new Node(nullptr); // DELETE THIS LATER! this is from the OLD program!
+  // name collections
+  FirstNames first_names;
+  LastNames last_names;
 }
 using namespace studentlist;
+
+// NAME FUNCTIONS
+void random_last_name(char* name_ptr, int id){
+  // returns a random last name (using id as a seed)
+  srand(id);
+  int index = rand() % last_names.amount;
+  char* name = last_names.names[index];
+  strcpy(name_ptr, name);
+}
+// NAME FUNCTIONS
+void random_first_name(char* name_ptr, int id){
+  // returns a random first name (using id as a seed)
+  srand(id);
+  int index = rand() % first_names.amount;
+  char* name = first_names.names[index];
+  strcpy(name_ptr, name);
+}
 
 // HASH FUNCTIONS
 void get_hashTable_size(){
@@ -248,31 +272,49 @@ void add_student(){
   return;
 }
 
-void add_random_student(){
-  // adds a student based on random chance
+int add_random_student(){
+  // adds 1 student based on random chance
   char* pEnd; // this is needed for some low-level memory stuff in strtol and strtof
-  char name1[81]; strcpy(name1, input("Enter the student's first name: ")); // does this break style? the function was already bulky so i wanted to combine like terms
-  char name2[81]; strcpy(name2, input("Enter the student's last name: "));
   int id1 = 1 + ending_id; // automatically increment it!
-  // the project description doesn't say that the ID has to be chosen by the user, this time
-  // so i assumed i could make the ID be automatically chosen
-  // this makes the hash sort much easier
-  // since it's table-sorted, the user could create an ID that is so far off the median that it ruins the sorting algorithm
+  char name1[81];
+  char* pname1 = name1;
+  random_first_name(pname1, id1);
+  char name2[81];
+  char* pname2 = name2;
+  random_last_name(pname2, id1);
   ending_id = id1;
-  char* gpa = input("Enter the student's GPA: ");
-  float gpa1 = strtof(gpa, &pEnd); // cast to float
-  float gpa2 = round(100 * gpa1) / 100; // round to 2 decimal points
+  float r = (float)(1 + rand() % 40);
+  float gpa1 = r / 10;
   Student* student = new Student; // to keep it in memory after this scope ends; be sure to free this memory when it gets deleted
   strcpy(student->name1, name1);
   strcpy(student->name2, name2);
   student->id = id1; // id
-  student->gpa = gpa2; // gpa
+  student->gpa = gpa1; // gpa
   node_add_student(student, headptr); // new function
   int code = add_student_to_hashTable(student, 1);
-  if (code == 0){
-    print("Success.");
+  return code;
+}
+
+void add_random(){
+  // adds 1 or more random students
+  int amount;
+  cout << "How many students do you want to add?: " << flush;
+  cin >> amount;
+  if (amount > 1000){
+    print("Only add up to 1,000 students at a time.");
+    return;
   }
-  return;
+  if (amount < 1){
+    print("Invalid amount.");
+    return;
+  }
+  // the main loop
+  for (int i = 0; i < amount; i++){
+    int code = add_random_student();
+    if (code != 0){
+      cout << "Error: " << code << endl;
+    }
+  }
 }
 
 void print_students(){
@@ -324,6 +366,7 @@ int main(){
       print("HELP: print list of commands");
       print("QUIT: quit this program");
       print("ADD: add a student");
+      print("RANDOM: add random students");
       print("PRINT: print all the students currently stored");
       print("DELETE: delete a student");
       print("AVERAGE: get GPA average");
@@ -334,6 +377,9 @@ int main(){
     }
     if (strcmp(cmd, "ADD") == 0){ // ADD
       add_student();
+    }
+    if (strcmp(cmd, "RANDOM") == 0){ // RANDOM
+      add_random();
     }
     if (strcmp(cmd, "PRINT") == 0){ // PRINT
       print_students();
