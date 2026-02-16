@@ -7,6 +7,7 @@
 #include <cstring> // for strcmp() + strcpy()
 #include <cstdlib> // for strtol() + strtof() + rand()
 #include <cmath> // for round()
+#include <ctime> // for time()
 #include "student.h"
 #include "node.h"
 // name files
@@ -17,14 +18,13 @@ using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.07";
-  int starting_id = 10000;
-  int ending_id = 10000;
+  char version[20] = "3.08";
+  int starting_id;
+  int ending_id;
   int entrySize;
   int tableSize = 100;
   const int maxTableSize = 512000; // if the hash table still doesn't fit, the program must quit. ignoring the students themselves, this hash list would be on the low end 100 megabytes (according to my very broad math); a few more recursions and there would be no memory left!
   Node** hashTable = new Node*[100](); // this should create a bunch of default nodes
-  Node* headptr = new Node(nullptr); // DELETE THIS LATER! this is from the OLD program!
   // name collections
   FirstNames first_names;
   LastNames last_names;
@@ -70,21 +70,6 @@ int id_position(int id, int hashTable_size){
   // THIS ONLY WORKS ASSUMING THE IDS ARE UNIFORM! i have to wrestle away some control from the user in this case.
 }
 
-float alphabetical_position(char*str){
-  // takes a char / char array and returns a float, from 0.0 to 1.0, of its alphabetical position
-  // (assuming student names start with capital letters)
-  // since the hash table needs to be indexed using IDs, this function might not be used
-  char abc[55] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  const char* str2 = &str[0];
-  for (int i = 0; i<55; i++){
-    const char* str1 = &abc[i];
-    if (strcmp(str1, str2) == 0){
-      return i / 56; // return its position, alphabetically, from 0.0 to 1.0
-    }
-  }
-  return 1.0; // everything else is pushed to the back, alphabetically
-}
-
 int add_student_to_hashTable(Student* student, int recursion){
   // the mammoth function
   // adds a student to HashTable
@@ -97,6 +82,7 @@ int add_student_to_hashTable(Student* student, int recursion){
   // 3 - error: maxTableSize exceeded, halt program
   // 4 - infinite recursions
   // 5 - other
+  // i didn't end up implementing most of them since they are pretty redundant, so...
   Node* new_node = new Node(student);
   int index = id_position(student->id, tableSize);
   bool RESIZE = false; // whether or not to resize the table later
@@ -182,54 +168,13 @@ int add_student_to_hashTable(Student* student, int recursion){
     delete[] oldTable;
     // ﬁnally! add the student you originally intended to add
     return add_student_to_hashTable(student, recursion+1);
+    // and print the new info
+    get_hashTable_size();
   }
   return 5;
 }
   
 // END OF HASH FUNCTIONS
-
-
-
-// NODE FUNCTIONS
-void node_add_student(Student*student, Node*ptr){
-  // adds student to the end of the linked list
-  if (ptr->getNext() == nullptr){
-    Node* newptr = new Node(student);
-    ptr->setNext(newptr);
-  } else {
-    node_add_student(student, ptr->getNext());
-  }
-}
-
-void print_remaining(Node*ptr, int i){
-  // prints the next node and all the nodes after it
-  if (ptr == nullptr){
-    return;
-  }
-  // this part only runs if the pointer exists
-  Student* student = ptr->getStudent();
-  cout << i << ") ";
-  cout << student->name1 << ' ' << student->name2 << ", ";
-  cout << student->id << ", ";
-  cout << student->gpa << "\n";
-  i++;
-  print_remaining(ptr->getNext(), i);
-
-}
-
-float average(Node*ptr, float total, int count){
-  // add up the average and divide by count if it's the last one
-  if (ptr == nullptr){
-    if (count == 0){ // avoid division by 0
-      return 0;
-    }
-    float average = round((total / count) * 100) / 100;
-    return average;
-  }
-  total += ptr->getStudent()->gpa;
-  return average(ptr->getNext(), total, count+1);
-}
-// END OF NODE FUNCTIONS
 
 void print(const char* text = ""){
   // cout wrapper, similar to python print()
@@ -264,7 +209,6 @@ void add_student(){
   strcpy(student->name2, name2);
   student->id = id1; // id
   student->gpa = gpa2; // gpa
-  node_add_student(student, headptr); // new function
   int code = add_student_to_hashTable(student, 1);
   if (code == 0){
     print("Success.");
@@ -291,7 +235,6 @@ int add_random_student(){
   strcpy(student->name2, name2);
   student->id = id1; // id
   student->gpa = gpa1; // gpa
-  node_add_student(student, headptr); // new function
   int code = add_student_to_hashTable(student, 1);
   return code;
 }
@@ -326,27 +269,58 @@ void add_random(){
 void print_students(){
   // print the students that are stored
   print("Student list:");
-  short i = 1;
-  Node* ptr = studentlist::headptr;
-  print_remaining(headptr->getNext(), i);
-  cout << flush;
+  int student_num = 1;
+  // iterate over every element in the hash table
+  for (int i = 0; i < tableSize; i++){
+    Node* current_node = hashTable[i];
+    // look through collisions
+    while (current_node != nullptr){
+      Student* student = current_node->getStudent();
+      cout << student_num << ") ";
+      cout << student->name1 << ' ' << student->name2 << ", ";
+      cout << student->id << ", ";
+      cout << student->gpa << "\n";
+      current_node = current_node->getNext();
+      student_num += 1;
+    }
+  }
   return;
 }
 
-void delete_student_with_id(Node* lastptr, Node* ptr, int id){
+void delete_student_with_id(int id){
   // try to delete this student, or move on to the next
-  Student* student = ptr->getStudent();
-  if (student->id == id){
-    cout << "Removing " << student->name1 << ' ' << student->name2 << "..." << endl;
-    lastptr->setNext(ptr->getNext());
-    delete ptr;
-  } else {
-    if (ptr->getNext() == nullptr){
-      cout << "Student not found." << endl;
-      return;
-    }
-    delete_student_with_id(ptr, ptr->getNext(), id);
+  int position = id_position(id, tableSize);
+  if ((position >= tableSize) || (position < 0)){ // bit of error handling
+    print("Invalid ID!");
+    return;
   }
+  int collision = 1;
+  Node* current_node = hashTable[position];
+  if (current_node == nullptr){ // in case this chain doesn't even exist
+    print("Student not found.");
+    return;
+  }
+  Node* previous_node = nullptr;
+  Student* student = current_node->getStudent();
+  while ((student->id != id) && (collision < 3)){
+    previous_node = current_node;
+    current_node = current_node->getNext();
+    student = current_node->getStudent();
+    collision += 1;
+  }
+  if (collision >= 3){ // max collisions
+    print("Student not found.");
+    return;
+  }
+  Node* new_next = current_node->getNext();
+  if (previous_node == nullptr){
+    hashTable[position] = new_next;
+  } else {
+    previous_node->setNext(new_next); // stitch it together
+  }
+  delete current_node->getStudent(); // this is necessary since they have separate destructors now
+  delete current_node;
+  return;
 }
 
 void delete_student(){
@@ -355,12 +329,40 @@ void delete_student(){
   char* pEnd;
   char* indexstr = input("Enter the student ID to delete: ");
   int index = strtol(indexstr, &pEnd, 10); // cast to int
-  Node* ptr = headptr->getNext();
-  Node* lastptr = headptr;
-  delete_student_with_id(lastptr, ptr, index); // new function
+  delete_student_with_id(index); // new function
 }
-  
+
+void get_average(){
+  // gets the GPA average
+  // i completely remade this for the hash table
+  float average = 0;
+  int student_count = 0;
+  for (int i = 0; i < tableSize; i++){
+    // iterate through the table
+    Node* current_node = hashTable[i];
+    int collision = 1;
+    while ((current_node != nullptr) && (collision < 3)){
+      Student* student = current_node->getStudent();
+      average += student->gpa;
+      student_count += 1;
+      collision += 1;
+      current_node = current_node->getNext();
+    }
+  }
+  if (student_count == 0){ // no students
+    print("Add some students first!");
+    return;
+  }
+  average /= student_count;
+  float gpa2 = round(100 * average) / 100; // round to 2 decimal points
+  cout << gpa2 << endl;
+  return;
+}
+
 int main(){
+  srand(time(nullptr));
+  starting_id = 10000 + (rand() % 80000);
+  ending_id = starting_id;
   get_hashTable_size();
   cout << "Hash Table Student List - Version " << version << endl;
   print("Welcome! Type 'HELP' for a list of commands.");
@@ -394,8 +396,7 @@ int main(){
       delete_student();
     }
     if (strcmp(cmd, "AVERAGE") == 0){ // AVERAGE
-      float average1 = average(headptr->getNext(), 0, 0);
-      cout << average1 << endl;
+      get_average();
     }
   }
   return 0;
