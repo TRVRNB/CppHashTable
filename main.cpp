@@ -18,13 +18,13 @@ using namespace std;
 
 namespace studentlist {
   // public objects for this program
-  char version[20] = "3.08";
+  char version[20] = "3.09";
   int starting_id;
   int ending_id;
   int entrySize;
-  int tableSize = 100;
+  int tableSize = 200;
   const int maxTableSize = 512000; // if the hash table still doesn't fit, the program must quit. ignoring the students themselves, this hash list would be on the low end 100 megabytes (according to my very broad math); a few more recursions and there would be no memory left!
-  Node** hashTable = new Node*[100](); // this should create a bunch of default nodes
+  Node** hashTable = new Node*[200](); // this should create a bunch of default nodes
   // name collections
   FirstNames first_names;
   LastNames last_names;
@@ -288,7 +288,7 @@ void print_students(){
 }
 
 void delete_student_with_id(int id){
-  // try to delete this student, or move on to the next
+  // delete a student from the hash table using its id as an index
   int position = id_position(id, tableSize);
   if ((position >= tableSize) || (position < 0)){ // bit of error handling
     print("Invalid ID!");
@@ -378,6 +378,7 @@ int main(){
       print("PRINT: print all the students currently stored");
       print("DELETE: delete a student");
       print("AVERAGE: get GPA average");
+      print("SIZE: get the size of the hash table");
     }
     if (strcmp(cmd, "QUIT") == 0){ // QUIT
       running = 0; // program will stop after completing this loop
@@ -397,6 +398,9 @@ int main(){
     }
     if (strcmp(cmd, "AVERAGE") == 0){ // AVERAGE
       get_average();
+    }
+    if (strcmp(cmd, "SIZE") == 0){ // SIZE
+      get_hashTable_size();
     }
   }
   return 0;
