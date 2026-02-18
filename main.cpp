@@ -1,8 +1,3 @@
-// The hash table will start out with a size of 200.
-// The entries will be linked lists. The head pointer to this linked list could be blank; maybe this will make it easier to DELETE the first student.
-// Do keys HAVE to have data? They could be sorted alphabetically, which would make them easy to stretch out over a large array.
-// The keys could also just represent their position in the array. So the 31st key would just be labelled "31".
-// I need to make a function that gets a float value based on text's alphabetical position, assuming student names always start with capital letters.
 #include <iostream>
 #include <cstring> // for strcmp() + strcpy()
 #include <cstdlib> // for strtol() + strtof() + rand()
